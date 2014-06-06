@@ -4,10 +4,13 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.sonatype.sisu.litmus.testsupport.TestSupport;
+import org.slf4j.Logger;
+import org.sonatype.sisu.litmus.testsupport.TestUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,13 +30,18 @@ import static org.hamcrest.Matchers.notNullValue;
 
 @RunWith( Parameterized.class )
 public class AtomicMoveSupportTest
-    extends TestSupport
 {
-    @Parameterized.Parameters(name = "{index}: targetExists={0}, crossVolume={1}, atomicMove={2}")
+    private final TestUtil util = new TestUtil( this );
+
+    private final Logger logger = util.getLog();
+
+    @Rule
+    public TestName testName = new TestName();
+
+    @Parameterized.Parameters( name = "{index}: targetExists={0}, crossVolume={1}, atomicMove={2}" )
     public static Collection<Object[]> data()
     {
-        return Arrays.asList( new Object[][]{
-            { false, false, false }, // 0
+        return Arrays.asList( new Object[][]{ { false, false, false }, // 0
             { true, false, false }, // 1
             { false, true, false }, // 2
             { true, true, false }, // 3
@@ -132,9 +140,12 @@ public class AtomicMoveSupportTest
     private void move( final Path from, final Path to )
         throws IOException
     {
-        if (atomicMove) {
+        if ( atomicMove )
+        {
             Files.move( from, to, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING );
-        } else {
+        }
+        else
+        {
             Files.move( from, to, StandardCopyOption.REPLACE_EXISTING );
         }
     }
@@ -145,7 +156,15 @@ public class AtomicMoveSupportTest
         assertThat( from, notNullValue() );
         assertThat( "from must exists", Files.exists( from ), is( true ) );
         assertThat( from, notNullValue() );
-        move( from, to );
+        try
+        {
+            move( from, to );
+            logger.info( testName.getMethodName() + "OK" );
+        }
+        catch ( IOException e )
+        {
+            logger.info( testName.getMethodName() + "Failure" );
+        }
     }
 
     // ==
